@@ -22,3 +22,7 @@ To deploy the ARM template, you need following:
 - Github Actions
 - Azure DevOps Pipelines
 - Any other CI/CD pipeline that you integrate with your git repository
+
+## Deploy to Azure using the button below
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FMahindraManoj%2Farm-rg-functionapps%2Fmain%2Fazuredeploy.json)
