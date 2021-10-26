@@ -452,10 +452,6 @@
                             "apiVersion": "2020-11-01",
                             "name": "[concat(parameters('functionAppNamePrefix'), copyIndex(1), '-pe', '/default')]",
                             "location": "[resourceGroup().location]",
-                            "dependsOn": [
-                                "functionAppPrivateEndpointCopy",
-                                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneForFunctionApp'))]"
-                            ],
                             "properties": {
                                 "privateDnsZoneConfigs": [
                                 {
