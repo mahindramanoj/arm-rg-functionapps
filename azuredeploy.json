@@ -166,9 +166,6 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'CreateVnetandSubnets')]"
-            ],
             "properties": {
                 "mode": "Incremental",
                 "template": {
