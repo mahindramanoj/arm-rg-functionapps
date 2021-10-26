@@ -430,7 +430,7 @@
             }
         },
         {
-            "name": "LinkPrivateEndpointwithPrivateDNS",
+            "name": "[concat('privateEndPointDnsLinkTemplate', copyIndex(1))]",
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
