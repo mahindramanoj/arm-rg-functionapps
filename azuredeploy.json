@@ -1,0 +1,477 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the resource group to be created"
+            }
+        },
+        "resourceGroupLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "Location of the resource group"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "vnetAddressPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Address space of the vnet"
+            }
+        },
+        "subnet1Name": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the subnet 1 that will host private endpoints of the function app(s)"
+            }
+        },
+        "subnet1AddressPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Address space of the subnet 1"
+            }
+        },
+        "subnet2Name": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the subnet 2 which will be deletegated to App Service Plan"
+            }
+        },
+        "subnet2AddressPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Address space of the subnet 2"
+            }
+        },
+        "functionAppsStorageAccount": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the storage account used by the function apps"
+            }
+        },
+        "functionAppNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Name prefix of the function apps"
+            }
+        },
+        "functionAppCount": {
+            "type": "int",
+            "minValue": 1,
+            "metadata": {
+                "description": "Number of function Apps to be deployed"
+            }
+        },
+        "hostingPlanName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the App Service Plan"
+            }
+        },
+        "logAnalyticsWorkspace": {
+            "type": "string",
+            "metadata": {
+                "description": "Log analytics workspace name"
+            }
+        }
+    },
+    "functions": [],
+    "variables": {
+        "functionAppsStorageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('functionAppsStorageAccount'))]",
+        "vnetId": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+        "serverFarmSubnetId": "[concat(variables('vnetId'), '/subnets/', parameters('subnet2Name'))]",
+        "privateEndpointSubnetId": "[concat(variables('vnetId'), '/subnets/', parameters('subnet1Name'))]",
+        "privateDnsZoneForFunctionApp": "privatelink.azurewebsites.net"
+    },
+    "resources": [
+        {
+            "name": "[parameters('resourceGroupName')]",
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "2021-05-01",
+            "location": "[parameters('resourceGroupLocation')]"
+        },
+        {
+            "name": "CreateVnetandSubnets",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "outer"
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": [
+                        {
+                            "name": "[parameters('vnetName')]",
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2020-11-01",
+                            "location": "[resourceGroup().location]",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "[parameters('vnetAddressPrefix')]"
+                                    ]
+                                },
+                                "subnets": [
+                                    {
+                                        "name": "[parameters('subnet1Name')]",
+                                        "properties": {
+                                            "addressPrefix": "[parameters('subnet1AddressPrefix')]"
+                                        }
+                                    },
+                                    {
+                                        "name": "[parameters('subnet2Name')]",
+                                        "properties": {
+                                            "addressPrefix": "[parameters('subnet2AddressPrefix')]",
+                                            "serviceEndpoints": [
+                                                {
+                                                    "service": "Microsoft.Storage"
+                                                }
+                                            ],
+                                            "delegations": [
+                                                {
+                                                    "name": "0",
+                                                    "properties": {
+                                                        "serviceName": "Microsoft.Web/serverFarms"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "parameters": {}
+            }
+        },
+        {
+            "name": "CreateBaseResources",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'CreateVnetandSubnets')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "name": "[parameters('logAnalyticsWorkspace')]",
+                            "type": "Microsoft.OperationalInsights/workspaces",
+                            "apiVersion": "2020-10-01",
+                            "location": "[resourceGroup().location]",
+                            "properties": {
+                                "sku": {
+                                    "name": "PerGB2018"
+                                }
+                            }
+                        },
+                        {
+                            "name": "[parameters('functionAppsStorageAccount')]",
+                            "type": "Microsoft.Storage/storageAccounts",
+                            "apiVersion": "2021-04-01",
+                            "location": "[resourceGroup().location]",
+                            "kind": "Storage",
+                            "sku": {
+                                "name": "Standard_LRS",
+                                "tier": "Standard"
+                            }
+                        },
+                        {   
+                            "name": "[parameters('hostingPlanName')]",
+                            "type": "Microsoft.Web/serverfarms",
+                            "apiVersion": "2020-12-01",
+                            "location": "[resourceGroup().location]",
+                            "sku": {
+                                "name": "EP1",
+                                "tier": "ElasticPremium"
+                            },
+                            "properties": {
+                                "maximumElasticWorkerCount": 20
+                            }
+                        },
+                        {
+                            "name": "[variables('privateDnsZoneForFunctionApp')]",
+                            "type": "Microsoft.Network/privateDnsZones",
+                            "apiVersion": "2018-09-01",
+                            "location": "global",
+                            "properties": ""
+                        },
+                        {
+                            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+                            "apiVersion": "2018-09-01",
+                            "name": "[concat(variables('privateDnsZoneForFunctionApp'), '/', variables('privateDnsZoneForFunctionApp'), '-link')]",
+                            "location": "global",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneForFunctionApp'))]"
+                            ],
+                            "properties": {
+                                "registrationEnabled": false,
+                                "virtualNetwork": {
+                                "id": "[variables('vnetId')]"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "parameters": {}
+            }
+        },
+        {
+            "name": "CreateAppInsightComponentsForFunctionApps",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'CreateBaseResources')]"
+            ],
+            "copy": {
+                "name": "appInsightsCopy",
+                "count": "[parameters('functionAppCount')]"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "name": "[concat(parameters('functionAppNamePrefix'), copyIndex(1), '-ai')]",
+                            "type": "Microsoft.Insights/components",
+                            "apiVersion": "2020-02-02",
+                            "location": "[resourceGroup().location]",
+                            "kind": "web",
+                            "properties": {
+                                "application_Type": "web",
+                                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspace'))]"
+                            }
+                        }   
+                    ]
+                },
+                "parameters": {}
+            }
+        },
+        {
+            "name": "createFunctionApps",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'CreateAppInsightComponentsForFunctionApps')]"
+            ],
+            "copy": {
+                "name": "functionAppCopy",
+                "count": "[parameters('functionAppCount')]"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {   
+                            "apiVersion": "2020-12-01",
+                            "type": "Microsoft.Web/sites",
+                            "name": "[concat(parameters('functionAppNamePrefix'), copyIndex(1))]",
+                            "location": "[resourceGroup().location]",
+                            "kind": "functionapp",
+                            "properties": {
+                                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]",
+                                "siteConfig": {
+                                    "appSettings": [
+                                        {
+                                            "name": "AzureWebJobsStorage",
+                                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('functionAppsStorageAccount'), ';AccountKey=', listKeys(variables('functionAppsStorageAccountId'),'2019-06-01').keys[0].value,';EndpointSuffix=','core.windows.net')]"
+                                        },
+                                        {
+                                            "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('functionAppsStorageAccount'), ';AccountKey=', listKeys(variables('functionAppsStorageAccountId'),'2019-06-01').keys[0].value,';EndpointSuffix=','core.windows.net')]"
+                                        },
+                                        {
+                                            "name": "WEBSITE_CONTENTSHARE",
+                                            "value": "[toLower(concat(parameters('functionAppNamePrefix'), copyIndex(1)))]"
+                                        },
+                                        {
+                                            "name": "FUNCTIONS_EXTENSION_VERSION",
+                                            "value": "~3"
+                                        },
+                                        {
+                                            "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                                            "value": "[reference(resourceId('microsoft.insights/components/', concat(parameters('functionAppNamePrefix'), copyIndex(1), '-ai')), '2015-05-01').InstrumentationKey]"
+                                        },
+                                        {
+                                            "name": "APPINSIGHTS_CONNECTIONSTRING",
+                                            "value": "[reference(resourceId('microsoft.insights/components/', concat(parameters('functionAppNamePrefix'), copyIndex(1), '-ai')), '2015-05-01').ConnectionString]"
+                                        },
+                                        {
+                                            "name": "FUNCTIONS_WORKER_RUNTIME",
+                                            "value": "dotnet"
+                                        },
+                                        {
+                                            "name": "WEBSITE_CONTENTOVERVNET",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "name": "WEBSITE_DNS_SERVER",
+                                            "value": "168.63.129.16"
+                                        },
+                                        {
+                                            "name": "WEBSITE_VNET_ROUTE_ALL",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "clientAffinityEnabled": false
+                            }
+                        }
+                    ]
+                },
+                "parameters": {}
+            }
+        },
+        {
+            "name": "FunctionAppsVnetInegration",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'createFunctionApps')]"
+            ],
+            "copy": {
+                "name": "functionAppVnetIntegrationCopy",
+                "count": "[parameters('functionAppCount')]"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "type": "Microsoft.Web/sites/networkConfig",
+                            "apiVersion": "2020-12-01",
+                            "name": "[concat(parameters('functionAppNamePrefix'), copyIndex(1), '/virtualNetwork')]",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Web/sites', concat(parameters('functionAppNamePrefix'), copyIndex(1)))]"
+                            ],
+                            "properties": {
+                                "subnetResourceId": "[variables('serverFarmSubnetId')]",
+                                "swiftSupported": true
+                            }
+                        }
+                    ]
+                },
+                "parameters": {}
+            }
+        },
+        {
+            "name": "CreatePrivateEndpointsForFunctionApps",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'FunctionAppsVnetInegration')]"
+            ],
+            "copy": {
+                "name": "functionAppPrivateEndPointCopy",
+                "count": "[parameters('functionAppCount')]"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/privateEndpoints",
+                            "apiVersion": "2020-11-01",
+                            "name": "[concat(parameters('functionAppNamePrefix'), copyIndex(1), '-pe')]",
+                            "location": "[resourceGroup().location]",
+                            "properties": {
+                                "subnet": {
+                                    "id": "[variables('privateEndpointSubnetId')]"
+                                },
+                                "privateLinkServiceConnections": [
+                                    {
+                                        "name": "[concat(parameters('functionAppNamePrefix'), copyIndex(1), '-pe')]",
+                                        "properties": {
+                                            "privateLinkServiceId": "[resourceId('Microsoft.Web/sites',concat(parameters('functionAppNamePrefix'), copyIndex(1)))]",
+                                            "groupIds": [
+                                                "sites"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "parameters": {}
+            }
+        },
+        {
+            "name": "LinkPrivateEndpointwithPrivateDNS",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'CreatePrivateEndpointsForFunctionApps')]"
+            ],
+            "copy": {
+                "name": "functionAppPrivateEndpointPrivateDnsCopy",
+                "count": "[parameters('functionAppCount')]"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+                            "apiVersion": "2020-11-01",
+                            "name": "[concat(parameters('functionAppNamePrefix'), copyIndex(1), '-pe', '/default')]",
+                            "location": "[resourceGroup().location]",
+                            "dependsOn": [
+                                "functionAppPrivateEndpointCopy",
+                                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneForFunctionApp'))]"
+                            ],
+                            "properties": {
+                                "privateDnsZoneConfigs": [
+                                {
+                                    "name": "privatelink-azurewebsites-net",
+                                    "properties": {
+                                        "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneForFunctionApp'))]"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "parameters": {}
+            }
+        }
+    ],
+    "outputs": {}
+}

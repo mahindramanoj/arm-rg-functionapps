@@ -1,0 +1,45 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceGroupName": {
+            "value": "RG1" 
+        },
+        "resourceGroupLocation": {
+            "value": "canadacentral" 
+        },
+        "vnetName": {
+            "value": "vNet" 
+        },
+        "vnetAddressPrefix": {
+            "value": "10.0.0.0/24" 
+        },
+        "subnet1Name": {
+            "value": "FunctionApp-PrivateEndPoint" 
+        },
+        "subnet1AddressPrefix": {
+            "value": "10.0.0.0/28" 
+        },
+        "subnet2Name": {
+            "value": "ServerFarm" 
+        },
+        "subnet2AddressPrefix": {
+            "value": "10.0.0.32/27" 
+        },
+        "functionAppsStorageAccount": {
+            "value": "mysfuncappssa" 
+        },
+        "functionAppNamePrefix": {
+            "value": "mysfuncapp"
+        },
+        "functionAppCount": {
+            "value": 1 
+        },
+        "hostingPlanName": {
+            "value": "mys-asp" 
+        },
+        "logAnalyticsWorkspace": {
+            "value": "mys-law" 
+        }
+    }
+}
