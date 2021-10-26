@@ -166,6 +166,9 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
             "properties": {
                 "mode": "Incremental",
                 "template": {
@@ -217,7 +220,7 @@
                         {
                             "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
                             "apiVersion": "2018-09-01",
-                            "name": "[concat(variables('privateDnsZoneForFunctionApp'), '/', variables('privateDnsZoneForFunctionApp'), '-link')]",
+                            "name": "[concat(variables('privateDnsZoneForFunctionApp'), '-link')]",
                             "location": "global",
                             "dependsOn": [
                                 "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneForFunctionApp'))]"
@@ -240,7 +243,10 @@
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'CreateBaseResources')]"
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('functionAppsStorageAccount'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspace'))]",
+                "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('privateDnsZoneForFunctionApp') , concat(variables('privateDnsZoneForFunctionApp'), '-link'))]"
             ],
             "copy": {
                 "name": "appInsightsCopy",
@@ -274,7 +280,7 @@
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', concat('functionAppInsightTemplate', copyIndex(1)))]"
+                "appInsightsCopy"
             ],
             "copy": {
                 "name": "functionAppCopy",
@@ -352,7 +358,7 @@
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', concat('functionAppTemplate', copyIndex(1)))]"
+                "functionAppCopy"
             ],
             "copy": {
                 "name": "functionAppVnetIntegrationCopy",
@@ -387,7 +393,7 @@
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', concat('vnetInegrationTemplate', copyIndex(1)))]"
+                "functionAppVnetIntegrationCopy"
             ],
             "copy": {
                 "name": "functionAppPrivateEndPointCopy",
@@ -432,7 +438,7 @@
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', concat('privateEndpointTemplate', copyIndex(1)))]"
+                "functionAppPrivateEndPointCopy"
             ],
             "copy": {
                 "name": "functionAppPrivateEndpointPrivateDnsCopy",
