@@ -238,7 +238,7 @@
             }
         },
         {
-            "name": "CreateAppInsightComponentsForFunctionApps",
+            "name": "[concat('functionAppInsightTemplate', copyIndex(1))]",
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
@@ -272,12 +272,12 @@
             }
         },
         {
-            "name": "createFunctionApps",
+            "name": "[concat('functionAppTemplate', copyIndex(1))]",
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'CreateAppInsightComponentsForFunctionApps')]"
+                "[resourceId('Microsoft.Resources/deployments', concat('functionAppInsightTemplate', copyIndex(1)))]"
             ],
             "copy": {
                 "name": "functionAppCopy",
@@ -350,12 +350,12 @@
             }
         },
         {
-            "name": "FunctionAppsVnetInegration",
+            "name": "[concat('vnetInegrationTemplate', copyIndex(1))]",
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'createFunctionApps')]"
+                "[resourceId('Microsoft.Resources/deployments', concat('functionAppTemplate', copyIndex(1)))]"
             ],
             "copy": {
                 "name": "functionAppVnetIntegrationCopy",
@@ -385,12 +385,12 @@
             }
         },
         {
-            "name": "CreatePrivateEndpointsForFunctionApps",
+            "name": "[concat('privateEndpointTemplate', copyIndex(1))]",
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'FunctionAppsVnetInegration')]"
+                "[resourceId('Microsoft.Resources/deployments', concat('vnetInegrationTemplate', copyIndex(1)))]"
             ],
             "copy": {
                 "name": "functionAppPrivateEndPointCopy",
@@ -435,7 +435,7 @@
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'CreatePrivateEndpointsForFunctionApps')]"
+                "[resourceId('Microsoft.Resources/deployments', concat('privateEndpointTemplate', copyIndex(1)))]"
             ],
             "copy": {
                 "name": "functionAppPrivateEndpointPrivateDnsCopy",
