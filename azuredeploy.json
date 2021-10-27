@@ -166,9 +166,6 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-            ],
             "properties": {
                 "mode": "Incremental",
                 "template": {
@@ -242,12 +239,6 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('functionAppsStorageAccount'))]",
-                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspace'))]",
-                "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]",
-                "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('privateDnsZoneForFunctionApp') , concat(variables('privateDnsZoneForFunctionApp'), '-link'))]"
-            ],
             "copy": {
                 "name": "appInsightsCopy",
                 "count": "[parameters('functionAppCount')]"
@@ -279,9 +270,6 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
-            "dependsOn": [
-                "appInsightsCopy"
-            ],
             "copy": {
                 "name": "functionAppCopy",
                 "count": "[parameters('functionAppCount')]"
@@ -357,9 +345,6 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
-            "dependsOn": [
-                "functionAppCopy"
-            ],
             "copy": {
                 "name": "functionAppVnetIntegrationCopy",
                 "count": "[parameters('functionAppCount')]"
@@ -392,9 +377,6 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
-            "dependsOn": [
-                "functionAppVnetIntegrationCopy"
-            ],
             "copy": {
                 "name": "functionAppPrivateEndPointCopy",
                 "count": "[parameters('functionAppCount')]"
@@ -437,9 +419,6 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "resourceGroup": "[parameters('resourceGroupName')]",
-            "dependsOn": [
-                "functionAppPrivateEndPointCopy"
-            ],
             "copy": {
                 "name": "functionAppPrivateEndpointPrivateDnsCopy",
                 "count": "[parameters('functionAppCount')]"
