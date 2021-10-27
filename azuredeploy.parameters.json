@@ -25,21 +25,6 @@
         },
         "subnet2AddressPrefix": {
             "value": "10.0.0.32/27" 
-        },
-        "functionAppsStorageAccount": {
-            "value": "mysfuncappssa" 
-        },
-        "functionAppNamePrefix": {
-            "value": "mysfuncapp"
-        },
-        "functionAppCount": {
-            "value": 1 
-        },
-        "hostingPlanName": {
-            "value": "mys-asp" 
-        },
-        "logAnalyticsWorkspace": {
-            "value": "mys-law" 
         }
     }
 }
